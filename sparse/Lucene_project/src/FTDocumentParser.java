@@ -14,12 +14,16 @@ public class FTDocumentParser {
 
             // Getters and setters 
         public String getDocNo() {
-            return docNo;
+            return this.docNo;
         }
 
         public String getText() {
-            return text;
+            return this.text;
         } 
+
+        public String getHeadline() {
+            return this.headline;
+        }
 
         @Override
         public String toString() {
@@ -29,6 +33,7 @@ public class FTDocumentParser {
                     ", text='" + text + '\'' +
                     '}';
         }
+
     }
 
     public static List<String> parseStopwords(String stopwordsPath) throws IOException {
