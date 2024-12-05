@@ -31,6 +31,20 @@ public class FTDocumentParser {
         }
     }
 
+    public static List<String> parseStopwords(String stopwordsPath) throws IOException {
+        List<String> stopwords = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(stopwordsPath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (!line.isEmpty()) {
+                    stopwords.add(line);
+                }
+            }
+        }
+        return stopwords;
+    }
+
     private static String extractTagContent(BufferedReader reader, String currentLine, String startTag, String endTag) throws IOException {
         StringBuilder content = new StringBuilder();
         
