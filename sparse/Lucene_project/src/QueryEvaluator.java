@@ -60,6 +60,8 @@ public class QueryEvaluator {
                 String docId = parts[2];
                 int relevance = Integer.parseInt(parts[3]);
 
+                if (!docId.startsWith("FT")) continue;   // we have only FT docs
+
                 qrels.putIfAbsent(queryId, new HashMap<>());
                 qrels.get(queryId).put(docId, relevance);
             }
@@ -79,14 +81,9 @@ public class QueryEvaluator {
                 // escape the errors due to special characters
                 String escapedQueryText = QueryParserBase.escape(query.queryText);
 
-                Map<String, Integer> queryQrels = qrels.getOrDefault(query.queryId, new HashMap<>());
-
-                // Total relevant Document No
-                int relevantCount = (int) queryQrels.values().stream().filter(rel -> rel > 0).count();
-
                 QueryParser parser = new QueryParser("text", analyzer);
                 Query luceneQuery = parser.parse(escapedQueryText);
-                TopDocs results = searcher.search(luceneQuery, relevantCount);
+                TopDocs results = searcher.search(luceneQuery, 10);
                 ScoreDoc[] hits = results.scoreDocs;
 
                 System.out.println("Query ID: " + query.queryId + " | Text: " + query.queryText);
@@ -96,10 +93,10 @@ public class QueryEvaluator {
                 int fn = 0; // False Negatives
 
                 int retrievedCount = hits.length;
-                //Map<String, Integer> queryQrels = qrels.getOrDefault(query.queryId, new HashMap<>());
+                Map<String, Integer> queryQrels = qrels.getOrDefault(query.queryId, new HashMap<>());
 
                 // Total relevant Document No
-                //int relevantCount = (int) queryQrels.values().stream().filter(rel -> rel > 0).count();
+                int relevantCount = (int) queryQrels.values().stream().filter(rel -> rel > 0).count();
 
                 double maxScore=0;
                 double minScore= Double.POSITIVE_INFINITY;
@@ -131,7 +128,7 @@ public class QueryEvaluator {
                 double recall = (tp + fn == 0) ? 0 : (double) tp / (tp + fn); // Recall = TP / (TP + FN)
 
                 System.out.printf("Precision: %.2f | Recall: %.2f%n", precision, recall);
-                System.out.printf("Max Score: %f --- Min Score %f%n",maxScore,minScore);
+                System.out.printf("Max Score: %f | Min Score %f%n",maxScore,minScore);
 
 
                 System.out.println("-------------------------------------------------");
