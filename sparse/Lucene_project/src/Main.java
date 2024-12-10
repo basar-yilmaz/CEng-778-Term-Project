@@ -19,6 +19,7 @@ import org.apache.lucene.store.FSDirectory;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class Main {
@@ -69,7 +70,7 @@ public class Main {
         }
         return documents;
     }
-
+    /*
     public static void main(String[] args) {
         String indexPath = "index_dir";
         String stopwordsPath = "data/ft/all/stopword.lst";
@@ -103,7 +104,7 @@ public class Main {
 
             // Define a query parser on a specific field, for example "text"
             QueryParser parser = new QueryParser("text", analyzer);
-            Query query = parser.parse("African");
+            Query query = parser.parse("Hubble Telescope Achievements");
 
             // Perform the search with a maximum number of hits
             ScoreDoc[] hits = searcher.search(query, 10).scoreDocs;
@@ -122,5 +123,34 @@ public class Main {
             throw new RuntimeException(e);
         }
 
+    }
+    */
+
+    public static void main(String[] args) {
+        String indexPath = "index_dir";
+        String queryFilePath = "data/query-relJudgments/q-topics-org-SET1.txt";
+        String qrelFilePath = "data/query-relJudgments/qrel_301-350_complete.txt";
+        String stopwordsPath = "data/ft/all/stopword.lst";
+
+        //// Create index if not exists
+        //List<FTDocumentParser.Document> docs = createIndex("data/ft/all", indexPath, stopSet);
+
+        try {
+            // Parse Stopwords
+            List<String> stopwords = FTDocumentParser.parseStopwords(stopwordsPath);
+            CharArraySet stopSet = new CharArraySet(stopwords, true);
+
+            // Parse Queries
+            List<QueryEvaluator.QueryInfo> queries = QueryEvaluator.parseQueries(queryFilePath);
+
+            // Parse Qrels
+            Map<String, Map<String, Integer>> qrels = QueryEvaluator.parseQrels(qrelFilePath);
+
+            // Evaluate Queries
+            QueryEvaluator.evaluateQueries(indexPath, queries, qrels, stopSet);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
