@@ -18,6 +18,8 @@ import org.apache.lucene.store.FSDirectory;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -128,8 +130,17 @@ public class Main {
 
     public static void main(String[] args) {
         String indexPath = "index_dir";
-        String queryFilePath = "data/query-relJudgments/q-topics-org-SET1.txt";
+
+        List<String> queryFilePaths = Arrays.asList("data/query-relJudgments/q-topics-org-SET1.txt",
+                                                "data/query-relJudgments/q-topics-org-SET2.txt",
+                                                "data/query-relJudgments/q-topics-org-SET3.txt");
+        
         String qrelFilePath = "data/query-relJudgments/qrel_301-350_complete.txt";
+
+        List<String> qrelFilePaths = Arrays.asList("data/query-relJudgments/qrel_301-350_complete.txt",
+                "data/query-relJudgments/qrels.trec7.adhoc_350-400.txt",
+                "data/query-relJudgments/qrels.trec8.adhoc.parts1-5_400-450");
+
         String stopwordsPath = "data/ft/all/stopword.lst";
 
         //// Create index if not exists
@@ -141,10 +152,10 @@ public class Main {
             CharArraySet stopSet = new CharArraySet(stopwords, true);
 
             // Parse Queries
-            List<QueryEvaluator.QueryInfo> queries = QueryEvaluator.parseQueries(queryFilePath);
+            List<QueryEvaluator.QueryInfo> queries = QueryEvaluator.parseQueries(queryFilePaths);
 
             // Parse Qrels
-            Map<String, Map<String, Integer>> qrels = QueryEvaluator.parseQrels(qrelFilePath);
+            Map<String, Map<String, Integer>> qrels = QueryEvaluator.parseQrels(qrelFilePaths);
 
             // Evaluate Queries
             QueryEvaluator.evaluateQueries(indexPath, queries, qrels, stopSet);
