@@ -38,3 +38,5 @@ index_dir/
 .idea/
 *.iml
 old/
+
+*.pyc
