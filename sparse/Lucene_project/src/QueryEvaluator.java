@@ -8,7 +8,6 @@ import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -89,7 +88,9 @@ public class QueryEvaluator {
         try (DirectoryReader reader = DirectoryReader.open(indexDir)) {
             IndexSearcher searcher = new IndexSearcher(reader);
             Analyzer analyzer = new StandardAnalyzer(stopSet);
-
+            double total_ndcg = 0;
+            double total_recall = 0;
+            double total_precision = 0;
             for (QueryInfo query : queries) {
                 // Escape special characters in the query text
                 String escapedQueryText = QueryParserBase.escape(query.queryText);
@@ -111,29 +112,23 @@ public class QueryEvaluator {
                 // Total number of relevant documents
                 int relevantCount = (int) queryQrels.values().stream().filter(rel -> rel > 0).count();
 
-                double maxScore = 0;
-                double minScore = Double.POSITIVE_INFINITY;
-
-                // Iterate through the top 10 results
+                // List to store relevance scores of retrieved documents
+                List<Integer> relevanceScores = new ArrayList<>();
                 for (ScoreDoc hit : hits) {
-                    maxScore = Math.max(maxScore, hit.score);
-                    minScore = Math.min(minScore, hit.score);
-
                     Document doc = searcher.storedFields().document(hit.doc);
                     String docId = doc.get("docNo");
 
-                    // Skip if this document does not contain relevance info
                     if (!queryQrels.containsKey(docId)) {
-                        fp++; // False Positive if the retrieved document is not relevant
-                        continue;
-                    }
-
-                    int relevance = queryQrels.get(docId);
-
-                    if (relevance > 0) {
-                        tp++; // True Positive
+                        relevanceScores.add(0); // Not relevant
+                        fp++;
                     } else {
-                        fp++; // False Positive
+                        int relevance = queryQrels.get(docId);
+                        relevanceScores.add(relevance);
+                        if (relevance > 0) {
+                            tp++;
+                        } else {
+                            fp++;
+                        }
                     }
                 }
 
@@ -141,14 +136,45 @@ public class QueryEvaluator {
                 fn = relevantCount - tp;
 
                 // Precision and Recall calculation
-                double precision = (tp + fp == 0) ? -1 : (double) tp / (tp + fp);
-                double recall = (tp + fn == 0) ? -1 : (double) tp / (tp + fn);
+                double precision = (tp + fp == 0) ? 0 : (double) tp / (tp + fp);
+                double recall = (tp + fn == 0) ? 0 : (double) tp / (tp + fn);
+                double f1 = (recall == 0 || precision == 0) ? 0 : 2 * precision * recall / (recall + precision);
 
-                System.out.printf("Precision@10: %.2f | Recall@10: %.2f%n", precision, recall);
-                // System.out.printf("Max Score: %f | Min Score: %f%n", maxScore, minScore);
+                // Calculate DCG
+                double dcg = 0.0;
+                for (int i = 0; i < relevanceScores.size(); i++) {
+                    int rel = relevanceScores.get(i);
+                    dcg += (double) rel / (Math.log(i + 2) / Math.log(2)); // log base 2
+                }
+
+                // Calculate IDCG
+                List<Integer> idealRelevanceScores = new ArrayList<>(queryQrels.values());
+                idealRelevanceScores.sort(Collections.reverseOrder()); // Sort in descending order
+                double idcg = 0.0;
+                for (int i = 0; i < Math.min(idealRelevanceScores.size(), hits.length); i++) {
+                    int rel = idealRelevanceScores.get(i);
+                    idcg += (double) rel / (Math.log(i + 2) / Math.log(2)); // log base 2
+                }
+
+                // Normalize DCG to compute NDCG
+                double ndcg = (idcg == 0) ? 0 : dcg / idcg;
+
+                System.out.printf("Precision@10: %.2f | Recall@10: %.2f | F1@10: %.2f | NDCG@10: %.2f%n",
+                        precision, recall, f1, ndcg);
                 System.out.println("-------------------------------------------------");
+                total_recall += recall;
+                total_ndcg += ndcg;
+                total_precision = precision;
+
             }
+            double avg_prec = total_precision / queries.size();
+            double avg_ndcg = total_ndcg / queries.size();
+            double avg_recall = total_recall / queries.size();
+            System.out.printf("Avg Precision@10: %.2f\n", avg_prec);
+            System.out.printf("Avg recall@10: %.2f\n", avg_recall);
+            System.out.printf("Avg ndcg@10: %.2f", avg_ndcg);
         }
     }
+
 
 }
