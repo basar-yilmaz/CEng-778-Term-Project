@@ -18,7 +18,7 @@ def load_embeddings(file_path):
     return np.load(file_path, allow_pickle=True)
 
 doc_embeddings = encode_file("./docs.txt", model)
-save_embeddings(doc_embeddings, "/kaggle/working/doc_embeddings.npy")
+save_embeddings(doc_embeddings, "./doc_embeddings.npy")
 
 query_embeddings = encode_file("./queries.txt", model)
 save_embeddings(query_embeddings, "./query_embeddings.npy")
