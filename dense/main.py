@@ -1,7 +1,7 @@
 from parser import parse_documents, parse_queries, parse_relevance
 import os
 
-data_path = "data"
+data_path = ".." # Put the data folders into the root folder.
 doc_path = f"{data_path}/ft/all"
 query_path = f"{data_path}/query-relJudgements/q-topics-org-SET1.txt"
 
@@ -17,16 +17,29 @@ if __name__ == "__main__":
     # Read the queries
     queries = parse_queries(
         [
-            "data/query-relJudgments/q-topics-org-SET1.txt",
-            "data/query-relJudgments/q-topics-org-SET2.txt",
-            "data/query-relJudgments/q-topics-org-SET3.txt",
+            f"{data_path}/query-relJudgments/q-topics-org-SET1.txt",
+            f"{data_path}/query-relJudgments/q-topics-org-SET2.txt",
+            f"{data_path}/query-relJudgments/q-topics-org-SET3.txt",
         ]
     )
     print(f"Total queries: {len(queries)}")
 
+    print("Example query #1:")
+    print(queries[0])
+
     # Read the relevance judgments and add them to the queries
     parse_relevance(
-        "data/query-relJudgments/qrel_301-350_complete.txt",
+        f"{data_path}/query-relJudgments/qrel_301-350_complete.txt",
         queries,
         doc_ids,
     )
+    
+    with open("queries.txt", "w") as file:
+        for query in queries:
+            file.write(str(query.query) + "\n")
+
+    with open("docs.txt", "w") as file:
+        for doc in docs:
+            file.write(str(doc.text) + " " + str(doc.doc_no) + "\n")
+
+    
