@@ -1,27 +1,37 @@
-import numpy as np
 from sentence_transformers import SentenceTransformer
+from tqdm import tqdm
 
+# Initialize the embedding model
 model = SentenceTransformer("dunzhang/stella_en_1.5B_v5", trust_remote_code=True).cuda()
 
-def encode_file(file_path, model):
-    embeddings = []
-    with open(file_path, "r") as file:
-        for line in file:
-            embedding = model.encode(line.strip())
-            embeddings.append(embedding)
-    return embeddings
+def embed_documents(docs, model=model):
+    """
+    Embeds documents using the specified SentenceTransformer model.
+    Args:
+        docs (list): List of Document objects.
+        model: SentenceTransformer model.
+    Returns:
+        dict: A dictionary where keys are doc_no and values are embeddings.
+    """
+    doc_embeddings = {}
+    for doc in tqdm(docs, desc="Embedding Documents"):
+        if doc.text:  # Ensure there's text to embed
+            embedding = model.encode(doc.text, convert_to_tensor=True, device='cuda')
+            doc_embeddings[doc.doc_no] = embedding.cpu()  # Move to CPU for storage
+    return doc_embeddings
 
-def save_embeddings(embeddings, file_path):
-    np.save(file_path, embeddings)
-
-def load_embeddings(file_path):
-    return np.load(file_path, allow_pickle=True)
-
-doc_embeddings = encode_file("./docs.txt", model)
-save_embeddings(doc_embeddings, "./doc_embeddings.npy")
-
-query_embeddings = encode_file("./queries.txt", model)
-save_embeddings(query_embeddings, "./query_embeddings.npy")
-
-loaded_doc_embeddings = load_embeddings("./doc_embeddings.npy")
-loaded_query_embeddings = load_embeddings("./query_embeddings.npy")
+def embed_queries(queries, model=model):
+    """
+    Embeds queries using the specified SentenceTransformer model.
+    Args:
+        queries (list): List of Query objects.
+        model: SentenceTransformer model.
+    Returns:
+        dict: A dictionary where keys are query_no and values are embeddings.
+    """
+    query_embeddings = {}
+    for query in tqdm(queries, desc="Embedding Queries"):
+        if query.query:  # Ensure there's a query string to embed
+            embedding = model.encode(query.query, convert_to_tensor=True, device='cuda')
+            query_embeddings[query.query_no] = embedding.cpu()  # Move to CPU for storage
+    return query_embeddings

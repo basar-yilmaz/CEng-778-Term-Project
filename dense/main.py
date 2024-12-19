@@ -1,15 +1,14 @@
+import pickle
+
 from parser import parse_documents, parse_queries, parse_relevance
+from embedding import embed_queries, embed_documents
 import os
 
-data_path = ".." # Put the data folders into the root folder.
+data_path = "data"  # Put the data folders into the root folder.
 doc_path = f"{data_path}/ft/all"
 query_path = f"{data_path}/query-relJudgements/q-topics-org-SET1.txt"
 
-# Read the documents
-if __name__ == "__main__":
-    # stopwords = parse_stopwords("data/ft/all/stopword.lst")
-    # print(f"Total stopwords: {len(stopwords)}")
-
+def parsing_phase():
     # Read the documents (doc_ids are used to check if a document is relevant)
     docs, doc_ids = parse_documents(doc_path)
     print(f"Total documents: {len(docs)}")
@@ -24,8 +23,8 @@ if __name__ == "__main__":
     )
     print(f"Total queries: {len(queries)}")
 
-    print("Example query #1:")
-    print(queries[0])
+    # print("Example query #1:")
+    # print(queries[0])
 
     # Read the relevance judgments and add them to the queries
     parse_relevance(
@@ -33,13 +32,35 @@ if __name__ == "__main__":
         queries,
         doc_ids,
     )
-    
-    with open("queries.txt", "w") as file:
-        for query in queries:
-            file.write(str(query.query) + "\n")
 
-    with open("docs.txt", "w") as file:
-        for doc in docs:
-            file.write(str(doc.text) + " " + str(doc.doc_no) + "\n")
+    return docs, queries
 
-    
+def embedding_phase(docs, queries):
+    # Embed the queries
+    query_embeddings = embed_queries(queries)
+
+    # Embed the documents
+    doc_embeddings = embed_documents(docs)
+
+    return doc_embeddings, query_embeddings
+
+# Read the documents
+if __name__ == "__main__":
+   docs, queries = parsing_phase()
+
+   doc_embs, query_embs = embedding_phase(docs, queries)
+
+   # Save embeddings to files
+   with open("doc_embeddings.pkl", "wb") as f:
+       pickle.dump(doc_embs, f)
+
+   with open("query_embeddings.pkl", "wb") as f:
+       pickle.dump(query_embs, f)
+
+   # Example document embedding
+   doc_id = list(doc_embs.keys())[0]
+   print(f"Embedding for doc_id {doc_id}: {doc_embs[doc_id]}")
+
+   # Example query embedding
+   query_id = list(query_embs.keys())[0]
+   print(f"Embedding for query_id {query_id}: {query_embs[query_id]}")

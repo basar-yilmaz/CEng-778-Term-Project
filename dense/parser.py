@@ -13,12 +13,12 @@ class Document:
         page=None,
     ):
         self.doc_no = doc_no
-        # self.profile = profile
-        # self.date = date
+        self.profile = profile
+        self.date = date
         self.headline = headline
         self.text = text
-        # self.pub = pub
-        # self.page = page
+        self.pub = pub
+        self.page = page
 
     def __str__(self):
         return f"Document(doc_no='{self.doc_no}', headline='{self.headline}', text='{self.text}')"
@@ -113,7 +113,6 @@ def extract_tag_content(lines, start_tag, end_tag):
             content.append(line.strip())
     return " ".join(content)
 
-
 def parse_documents(directory_path):
     documents = []
     doc_ids = set()
@@ -126,6 +125,7 @@ def parse_documents(directory_path):
 
             doc = None
             current_text = []
+            inside_text = False  # Flag to track whether we're inside the <TEXT> tag
             for line in lines:
                 line = line.strip()
                 if "<DOC>" in line:
@@ -141,22 +141,18 @@ def parse_documents(directory_path):
                         doc.doc_no = extract_tag_content([line], "<DOCNO>", "</DOCNO>")
                         doc_ids.add(doc.doc_no)
                     elif "<PROFILE>" in line:
-                        doc.profile = extract_tag_content(
-                            [line], "<PROFILE>", "</PROFILE>"
-                        )
+                        doc.profile = extract_tag_content([line], "<PROFILE>", "</PROFILE>")
                     elif "<DATE>" in line:
                         doc.date = extract_tag_content([line], "<DATE>", "</DATE>")
                     elif "<HEADLINE>" in line:
-                        doc.headline = extract_tag_content(
-                            [line], "<HEADLINE>", "</HEADLINE>"
-                        )
-                    elif "<TEXT>" in line or current_text:
-                        if "<TEXT>" in line:
-                            current_text.append(
-                                extract_tag_content([line], "<TEXT>", "</TEXT>")
-                            )
-                        else:
-                            current_text.append(line)
+                        doc.headline = extract_tag_content([line], "<HEADLINE>", "</HEADLINE>")
+                    elif "<TEXT>" in line:
+                        inside_text = True
+                        current_text.append(extract_tag_content([line], "<TEXT>", "</TEXT>"))
+                    elif "</TEXT>" in line:
+                        inside_text = False
+                    elif inside_text:
+                        current_text.append(line)
                     elif "<PUB>" in line:
                         doc.pub = extract_tag_content([line], "<PUB>", "</PUB>")
                     elif "<PAGE>" in line:
