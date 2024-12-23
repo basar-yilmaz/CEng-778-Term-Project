@@ -1,5 +1,6 @@
 import os
-
+import pickle
+import numpy as np
 
 class Document:
     def __init__(
@@ -159,3 +160,38 @@ def parse_documents(directory_path):
                         doc.page = extract_tag_content([line], "<PAGE>", "</PAGE>")
 
     return documents, doc_ids
+
+
+
+def doc_embed_parser(docs_file_path):
+    doc_embeds = []
+
+    with open(docs_file_path, "rb") as file:
+        while True:
+            try:
+                obj = pickle.load(file) # obj contains dictionary of embeddings
+            except EOFError:
+                break 
+    
+    for embed in obj.values():
+        doc_embeds.append(embed)
+
+    return doc_embeds
+
+def query_embed_parser(query_file_path):
+    query_embeds = []
+
+    with open(query_file_path, "rb") as file:
+        while True:
+            try:
+                obj = pickle.load(file) # obj contains dictionary of embeddings
+            except EOFError:
+                break 
+    
+    for embed in obj.values():
+        query_embeds.append(embed)
+
+    return query_embeds
+
+def normalize_embeds(embed_list):
+    return (embed_list / np.linalg.norm(embed_list, axis=1, keepdims=True))
