@@ -80,7 +80,7 @@ public class QueryEvaluator {
         return qrels;
     }
 
-
+/*
     public static void evaluateQueries(String indexPath, List<QueryInfo> queries,
                                        Map<String, Map<String, Integer>> qrels,
                                        CharArraySet stopSet) throws Exception {
@@ -176,5 +176,40 @@ public class QueryEvaluator {
         }
     }
 
+*/
+public static void evaluateQueries(String indexPath, List<QueryInfo> queries,
+                                   Map<String, Map<String, Integer>> qrels,
+                                   CharArraySet stopSet) throws Exception {
+    Directory indexDir = FSDirectory.open(Paths.get(indexPath));
+    try (DirectoryReader reader = DirectoryReader.open(indexDir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Analyzer analyzer = new StandardAnalyzer(stopSet);
+
+        // Result file writer
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("my_result.txt"))) {
+            for (QueryInfo query : queries) {
+                String escapedQueryText = QueryParserBase.escape(query.queryText);
+
+                QueryParser parser = new QueryParser("text", analyzer);
+                Query luceneQuery = parser.parse(escapedQueryText);
+                TopDocs results = searcher.search(luceneQuery, 10);
+                ScoreDoc[] hits = results.scoreDocs;
+
+                System.out.println("Query ID: " + query.queryId + " | Text: " + query.queryText);
+
+                for (int rank = 0; rank < hits.length; rank++) {
+                    ScoreDoc hit = hits[rank];
+                    Document doc = searcher.storedFields().document(hit.doc);
+                    String docId = doc.get("docNo");
+                    float score = hit.score;
+
+                    // Write to my_result.txt
+                    writer.write(String.format("%s\tQ0\t%s\t%d\t%.4f\tmy_run%n",
+                            query.queryId, docId, rank + 1, score));
+                }
+            }
+        }
+    }
+}
 
 }
