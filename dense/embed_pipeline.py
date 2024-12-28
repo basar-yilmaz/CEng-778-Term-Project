@@ -100,6 +100,11 @@ def mean_pooling(model_output, attention_mask):
     )
 
 
+def cls_pooling(model_output):
+    # The [CLS] token is at index 0
+    return model_output.last_hidden_state[:, 0, :].cpu()  # Output the [CLS] token
+
+
 def compute_embeddings(
     loader, model, device="cuda" if torch.cuda.is_available() else "cpu"
 ):
@@ -111,8 +116,10 @@ def compute_embeddings(
         for batch in tqdm(loader, desc="Computing embeddings"):
             # Pass tokenized data to the model
             batch = {key: value.to(device) for key, value in batch.items()}
-            model_output = model(**batch)
-            batch_embeddings = mean_pooling(model_output, batch["attention_mask"])
+            with torch.no_grad():
+                model_output = model(**batch)
+            # batch_embeddings = mean_pooling(model_output, batch["attention_mask"])
+            batch_embeddings = cls_pooling(model_output)
             embeddings.append(batch_embeddings)
 
     return torch.cat(embeddings, dim=0)
