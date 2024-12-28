@@ -40,3 +40,6 @@ index_dir/
 old/
 
 *.pyc
+*.txt
+*.pkl
+*.ipynb

@@ -1,66 +1,54 @@
 import pickle
+from parser import (
+    filter_relevance_file,
+    parse_documents,
+    parse_queries,
+    parse_relevance,
+)
 
-from parser import parse_documents, parse_queries, parse_relevance
-from embedding import embed_queries, embed_documents
-import os
-
-data_path = "data"  # Put the data folders into the root folder.
+data_path = "../data"
 doc_path = f"{data_path}/ft/all"
-query_path = f"{data_path}/query-relJudgements/q-topics-org-SET1.txt"
+query_paths = [
+    f"{data_path}/query-relJudgments/q-topics-org-SET1.txt",
+    f"{data_path}/query-relJudgments/q-topics-org-SET2.txt",
+    f"{data_path}/query-relJudgments/q-topics-org-SET3.txt",
+]
+
+relevance_path = [
+    f"{data_path}/query-relJudgments/qrel_301-350_complete.txt",
+    f"{data_path}/query-relJudgments/qrels.trec7.adhoc_350-400.txt",
+    f"{data_path}/query-relJudgments/qrels.trec8.adhoc.parts1-5_400-450",
+]
+
 
 def parsing_phase():
     # Read the documents (doc_ids are used to check if a document is relevant)
     docs, doc_ids = parse_documents(doc_path)
     print(f"Total documents: {len(docs)}")
 
-    # Read the queries
-    queries = parse_queries(
-        [
-            f"{data_path}/query-relJudgments/q-topics-org-SET1.txt",
-            f"{data_path}/query-relJudgments/q-topics-org-SET2.txt",
-            f"{data_path}/query-relJudgments/q-topics-org-SET3.txt",
-        ]
-    )
+    queries = parse_queries(query_paths)
     print(f"Total queries: {len(queries)}")
-
-    # print("Example query #1:")
-    # print(queries[0])
 
     # Read the relevance judgments and add them to the queries
     parse_relevance(
-        f"{data_path}/query-relJudgments/qrel_301-350_complete.txt",
+        relevance_path,
         queries,
         doc_ids,
     )
 
-    return docs, queries
+    return docs, doc_ids, queries
 
-def embedding_phase(docs, queries):
-    # Embed the queries
-    query_embeddings = embed_queries(queries)
 
-    # Embed the documents
-    doc_embeddings = embed_documents(docs)
+def save_data(docs, doc_ids, queries):
+    with open(f"{data_path}docs.pkl", "wb") as f:
+        pickle.dump(docs, f)
+    with open(f"{data_path}queries.pkl", "wb") as f:
+        pickle.dump(queries, f)
 
-    return doc_embeddings, query_embeddings
 
-# Read the documents
 if __name__ == "__main__":
-   docs, queries = parsing_phase()
+    docs, doc_ids, queries = parsing_phase()
 
-   doc_embs, query_embs = embedding_phase(docs, queries)
+    # filter_relevance_file(relevance_path, doc_ids) this creates qrels with existing doc_ids
 
-   # Save embeddings to files
-   with open("doc_embeddings.pkl", "wb") as f:
-       pickle.dump(doc_embs, f)
-
-   with open("query_embeddings.pkl", "wb") as f:
-       pickle.dump(query_embs, f)
-
-   # Example document embedding
-   doc_id = list(doc_embs.keys())[0]
-   print(f"Embedding for doc_id {doc_id}: {doc_embs[doc_id]}")
-
-   # Example query embedding
-   query_id = list(query_embs.keys())[0]
-   print(f"Embedding for query_id {query_id}: {query_embs[query_id]}")
+    save_data(docs, doc_ids, queries)

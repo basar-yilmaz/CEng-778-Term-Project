@@ -1,5 +1,4 @@
 import os
-import pickle
 
 
 class Document:
@@ -191,3 +190,20 @@ def parse_documents(directory_path):
                         doc.page = extract_tag_content([line], "<PAGE>", "</PAGE>")
 
     return documents, doc_ids
+
+
+def filter_relevance_file(relevance_paths, valid_doc_ids):
+    for relevance_path in relevance_paths:
+        with (
+            open(relevance_path, "r") as fin,
+            open(f"{relevance_path}_preprocessed", "w") as fout,
+        ):
+            for line in fin:
+                parts = line.strip().split()
+                if len(parts) != 4:
+                    continue  # skip malformed lines
+                query_id, placeholder, doc_id, label = parts
+
+                if doc_id in valid_doc_ids:
+                    fout.write(line)
+        print(f"Filtered {relevance_path}")
