@@ -1,6 +1,6 @@
 import os
 import pickle
-import numpy as np
+
 
 class Document:
     def __init__(
@@ -29,6 +29,7 @@ class Query:
     def __init__(self, query_no=None, query=None, relevant_docs=None):
         self.query_no = query_no
         self.query = query
+        self.number_of_relevant_docs = 0
         self.relevant_docs = relevant_docs
 
     def __str__(self):
@@ -37,11 +38,31 @@ class Query:
     def add_relevant_doc(self, doc_no):
         if self.relevant_docs is None:
             self.relevant_docs = []
+        self.number_of_relevant_docs += 1
         self.relevant_docs.append(doc_no)
 
+    def update_relevant_docs(self, relevant_docs):
+        self.relevant_docs = relevant_docs
 
-def parse_relevance(file_path, queries, doc_ids):
-    if os.path.isfile(file_path):
+    def get_relevant_docs(self):
+        return self.relevant_docs
+
+
+def parse_relevance(file_paths, queries, doc_ids):
+    processed_files = 0
+
+    for file_path in file_paths:
+        if not os.path.exists(file_path):
+            print(f"Warning: File not found - {file_path}")
+            continue
+
+        if not os.path.isfile(file_path):
+            print(f"Warning: Not a file - {file_path}")
+            continue
+
+        print(f"Processing: {file_path}")
+        processed_files += 1
+
         with open(file_path, "r") as file:
             for line in file:
                 parts = line.strip().split()
@@ -52,6 +73,9 @@ def parse_relevance(file_path, queries, doc_ids):
                             if query.query_no == query_no:
                                 query.add_relevant_doc(doc_no)
                                 break
+
+    if processed_files == 0:
+        raise FileNotFoundError("None of the provided paths were valid files")
 
 
 def parse_queries(file_paths):
@@ -114,6 +138,7 @@ def extract_tag_content(lines, start_tag, end_tag):
             content.append(line.strip())
     return " ".join(content)
 
+
 def parse_documents(directory_path):
     documents = []
     doc_ids = set()
@@ -142,14 +167,20 @@ def parse_documents(directory_path):
                         doc.doc_no = extract_tag_content([line], "<DOCNO>", "</DOCNO>")
                         doc_ids.add(doc.doc_no)
                     elif "<PROFILE>" in line:
-                        doc.profile = extract_tag_content([line], "<PROFILE>", "</PROFILE>")
+                        doc.profile = extract_tag_content(
+                            [line], "<PROFILE>", "</PROFILE>"
+                        )
                     elif "<DATE>" in line:
                         doc.date = extract_tag_content([line], "<DATE>", "</DATE>")
                     elif "<HEADLINE>" in line:
-                        doc.headline = extract_tag_content([line], "<HEADLINE>", "</HEADLINE>")
+                        doc.headline = extract_tag_content(
+                            [line], "<HEADLINE>", "</HEADLINE>"
+                        )
                     elif "<TEXT>" in line:
                         inside_text = True
-                        current_text.append(extract_tag_content([line], "<TEXT>", "</TEXT>"))
+                        current_text.append(
+                            extract_tag_content([line], "<TEXT>", "</TEXT>")
+                        )
                     elif "</TEXT>" in line:
                         inside_text = False
                     elif inside_text:
@@ -160,38 +191,3 @@ def parse_documents(directory_path):
                         doc.page = extract_tag_content([line], "<PAGE>", "</PAGE>")
 
     return documents, doc_ids
-
-
-
-def doc_embed_parser(docs_file_path):
-    doc_embeds = []
-
-    with open(docs_file_path, "rb") as file:
-        while True:
-            try:
-                obj = pickle.load(file) # obj contains dictionary of embeddings
-            except EOFError:
-                break 
-    
-    for embed in obj.values():
-        doc_embeds.append(embed)
-
-    return doc_embeds
-
-def query_embed_parser(query_file_path):
-    query_embeds = []
-
-    with open(query_file_path, "rb") as file:
-        while True:
-            try:
-                obj = pickle.load(file) # obj contains dictionary of embeddings
-            except EOFError:
-                break 
-    
-    for embed in obj.values():
-        query_embeds.append(embed)
-
-    return query_embeds
-
-def normalize_embeds(embed_list):
-    return (embed_list / np.linalg.norm(embed_list, axis=1, keepdims=True))
